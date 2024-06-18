@@ -1,7 +1,7 @@
 #include "summarizer.h"
 #include <iostream>
 #include <sstream>
-#include <fstream>  // Ãß°¡µÈ ºÎºĞ
+#include <fstream>  // ì¶”ê°€ëœ ë¶€ë¶„
 #include <vector>
 #include <map>
 #include <set>
@@ -40,14 +40,68 @@ std::map<std::string, double> computeTFIDF(const std::vector<std::string>& doc, 
 void textToSpeech(const std::string& text) {
     std::string command = "python text_to_speech.py \"" + text + "\"";
     std::system(command.c_str());
-    std::system("start output.mp3"); // Windows¿¡¼­ À½¼º ÆÄÀÏ Àç»ı
+    std::system("start output1.mp3"); // Windowsì—ì„œ ìŒì„± íŒŒì¼ ì¬ìƒ
 }
 
+//void summarizeText(const std::string& text) {
+//    std::istringstream iss(text);
+//    std::string line;
+//    std::vector<std::string> sentences;
+//    while (std::getline(iss, line, '.')) {
+//        if (!line.empty()) {
+//            sentences.push_back(line + '.');
+//        }
+//    }
+//
+//    std::vector<std::vector<std::string>> corpus;
+//    for (const std::string& sentence : sentences) {
+//        corpus.push_back(split(toLowerCase(sentence)));
+//    }
+//
+//    std::vector<std::pair<std::string, double>> sentenceScores;
+//    for (const std::vector<std::string>& doc : corpus) {
+//        std::map<std::string, double> tfidf = computeTFIDF(doc, corpus);
+//        double score = 0.0;
+//        for (const auto& pair : tfidf) {
+//            score += pair.second;
+//        }
+//        sentenceScores.push_back(std::make_pair(sentences[&doc - &corpus[0]], score));
+//    }
+//
+//    std::sort(sentenceScores.begin(), sentenceScores.end(), [](const std::pair<std::string, double>& a, const std::pair<std::string, double>& b) {
+//        return b.second > a.second;
+//        });
+//
+//    std::cout << "ìš”ì•½ ê²°ê³¼:\n";
+//    std::vector<std::string> summary;
+//    for (size_t i = 0; i < std::min<size_t>(sentenceScores.size(), size_t(3)); ++i) {
+//        std::cout << sentenceScores[i].first << "\n";
+//        summary.push_back(sentenceScores[i].first);
+//    }
+//
+//    // ìš”ì•½ëœ ë‚´ìš©ì„ í•˜ë‚˜ì˜ ë¬¸ìì—´ë¡œ ê²°í•©
+//    std::string fullSummary = "";
+//    for (const auto& sentence : summary) {
+//        fullSummary += sentence + " ";
+//    }
+//
+//    textToSpeech(fullSummary);
+//}
 void summarizeText(const std::string& text) {
     std::istringstream iss(text);
     std::string line;
     std::vector<std::string> sentences;
-    while (std::getline(iss, line, '.')) {
+    std::string combinedText;
+
+    // Combine lines to handle multi-line sentences
+    while (std::getline(iss, line)) {
+        if (!line.empty()) {
+            combinedText += line + " ";
+        }
+    }
+
+    std::istringstream combinedStream(combinedText);
+    while (std::getline(combinedStream, line, '.')) {
         if (!line.empty()) {
             sentences.push_back(line + '.');
         }
@@ -72,14 +126,13 @@ void summarizeText(const std::string& text) {
         return b.second > a.second;
         });
 
-    std::cout << "¿ä¾à °á°ú:\n";
+    std::cout << "ìš”ì•½ ê²°ê³¼:\n";
     std::vector<std::string> summary;
     for (size_t i = 0; i < std::min<size_t>(sentenceScores.size(), size_t(3)); ++i) {
         std::cout << sentenceScores[i].first << "\n";
         summary.push_back(sentenceScores[i].first);
     }
 
-    // ¿ä¾àµÈ ³»¿ëÀ» ÇÏ³ªÀÇ ¹®ÀÚ¿­·Î °áÇÕ
     std::string fullSummary = "";
     for (const auto& sentence : summary) {
         fullSummary += sentence + " ";
@@ -88,21 +141,22 @@ void summarizeText(const std::string& text) {
     textToSpeech(fullSummary);
 }
 
+
 void summarizeFile(const std::string& filePath) {
-    std::ifstream file(filePath);  // ifstreamÀ» »ç¿ëÇÏ±â À§ÇØ <fstream>À» Æ÷ÇÔÇØ¾ß ÇÕ´Ï´Ù.
+    std::ifstream file(filePath);  // ifstreamì„ ì‚¬ìš©í•˜ê¸° ìœ„í•´ <fstream>ì„ í¬í•¨í•´ì•¼ í•©ë‹ˆë‹¤.
     if (!file.is_open()) {
-        std::cerr << "ÆÄÀÏÀ» ¿­ ¼ö ¾ø½À´Ï´Ù." << std::endl;
+        std::cerr << "íŒŒì¼ì„ ì—´ ìˆ˜ ì—†ìŠµë‹ˆë‹¤." << std::endl;
         return;
     }
     std::stringstream ss;
     ss << file.rdbuf();
-    std::string utf8Str = ss.str(); // UTF-8 ÀÎÄÚµù ¹®ÀÚ¿­
+    std::string utf8Str = ss.str(); // UTF-8 ì¸ì½”ë”© ë¬¸ìì—´
 
     char* ansiStr = UTF8ToANSI(utf8Str.c_str());
 
-    std::cout << ansiStr << std::endl; // º¯È¯µÈ ¹®ÀÚ¿­ Ãâ·Â
+    std::cout << ansiStr << std::endl; // ë³€í™˜ëœ ë¬¸ìì—´ ì¶œë ¥
 
     summarizeText(ansiStr);
 
-    delete[] ansiStr; // ¸Ş¸ğ¸® ÇØÁ¦
+    delete[] ansiStr; // ë©”ëª¨ë¦¬ í•´ì œ
 }
